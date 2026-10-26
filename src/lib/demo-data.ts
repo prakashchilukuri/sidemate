@@ -1,0 +1,576 @@
+export type EmployeeStatus = "Live" | "Active" | "Draft" | "Building" | "Ready" | "Paused" | "Changes pending";
+
+export interface AIEmployee {
+  id: string;
+  name: string;
+  avatar: string;
+  role: string;
+  voice: string;
+  status: EmployeeStatus;
+  language: string;
+  totalCalls: number;
+  successRate: string;
+  avgDuration: string;
+  objective: string;
+  avatarColor?: string;
+  lastActive?: string;
+  channel?: "Instant lead" | "Inbound" | "Campaigns";
+  voiceModelTag?: string;
+  phoneNumber?: string;
+  callsToday?: number;
+  leadsCount?: number;
+  qualifiedCount?: number;
+  config?: AIEmployeeFullConfig;
+}
+
+export interface Lead {
+  id: string;
+  name: string;
+  company: string;
+  email: string;
+  phone: string;
+  status: "New" | "In Progress" | "Qualified" | "Meeting Booked" | "Disqualified";
+  assignedAgent: string;
+  lastContact: string;
+  dealSize: string;
+}
+
+export interface Campaign {
+  id: string;
+  name: string;
+  status: "Running" | "Paused" | "Scheduled" | "Completed";
+  agentName: string;
+  leadsTargeted: number;
+  callsCompleted: number;
+  connectedRate: string;
+  qualifiedRate: string;
+  schedule: string;
+}
+
+export interface CallRecord {
+  id: string;
+  leadName: string;
+  company: string;
+  phone: string;
+  agentName: string;
+  duration: string;
+  durationSeconds: number;
+  outcome: "Qualified" | "Meeting Booked" | "Callback" | "Voicemail" | "Not Interested" | "In Progress";
+  sentiment: "Positive" | "Neutral" | "Negative";
+  timestamp: string;
+  hasRecording: boolean;
+  transcriptSnippet: string;
+}
+
+export interface ConversationTurn {
+  speaker: "AI Employee" | "Customer";
+  text: string;
+  time: string;
+}
+
+export interface ConversationDetail {
+  id: string;
+  leadName: string;
+  company: string;
+  phone: string;
+  agentName: string;
+  date: string;
+  duration: string;
+  sentiment: "Positive" | "Neutral" | "Negative";
+  outcome: string;
+  summary: string;
+  keyTakeaways: string[];
+  actionItems: string[];
+  transcript: ConversationTurn[];
+}
+
+export interface Appointment {
+  id: string;
+  leadName: string;
+  company: string;
+  agentName: string;
+  date: string;
+  time: string;
+  duration: string;
+  type: string;
+  status: "Confirmed" | "Completed" | "Rescheduled" | "Cancelled";
+  meetingLink: string;
+}
+
+export interface IntegrationItem {
+  id: string;
+  name: string;
+  category: "CRM" | "Calendar" | "Communication" | "Automation";
+  description: string;
+  connected: boolean;
+  lastSynced?: string;
+  badge?: string;
+}
+
+export const INITIAL_AI_EMPLOYEES: AIEmployee[] = [
+  {
+    id: "emp-jagan",
+    name: "Jagan",
+    avatar: "J",
+    avatarColor: "bg-amber-600 text-white",
+    role: "Real Estate Follow-up Agent",
+    voice: "P09 (Clear Telugu & English)",
+    voiceModelTag: "P09 · te-IN",
+    status: "Ready",
+    language: "Telugu (తెలుగు)",
+    channel: "Instant lead",
+    phoneNumber: "No number yet",
+    lastActive: "No calls yet",
+    callsToday: 0,
+    leadsCount: 0,
+    qualifiedCount: 0,
+    totalCalls: 18,
+    successRate: "35.0%",
+    avgDuration: "2m 15s",
+    objective: "Follow up with warm real estate leads, explain project features, and qualify open plot buyers.",
+  },
+  {
+    id: "emp-radhika",
+    name: "Radhika",
+    avatar: "R",
+    avatarColor: "bg-purple-600 text-white",
+    role: "School Office Staff",
+    voice: "P02 (Polite Telugu & English)",
+    voiceModelTag: "P02 · te-IN",
+    status: "Live",
+    language: "Telugu (తెలుగు)",
+    channel: "Instant lead",
+    phoneNumber: "No number yet",
+    lastActive: "5 d ago",
+    callsToday: 0,
+    leadsCount: 0,
+    qualifiedCount: 0,
+    totalCalls: 450,
+    successRate: "42.5%",
+    avgDuration: "1m 50s",
+    objective: "Help parents with school admissions, fee reminder follow-ups, and campus visit bookings.",
+  },
+  {
+    id: "emp-prakash",
+    name: "prakash",
+    avatar: "p",
+    avatarColor: "bg-rose-600 text-white",
+    role: "Demo Class Followup Caller",
+    voice: "P07 (Energetic Telugu & English)",
+    voiceModelTag: "P07 · te-IN",
+    status: "Changes pending",
+    language: "Telugu (తెలుగు)",
+    channel: "Instant lead",
+    phoneNumber: "No number yet",
+    lastActive: "5 d ago",
+    callsToday: 0,
+    leadsCount: 1,
+    qualifiedCount: 0,
+    totalCalls: 120,
+    successRate: "28.0%",
+    avgDuration: "1m 30s",
+    objective: "Call students and parents who attended demo classes to collect feedback and confirm enrollments.",
+  },
+  {
+    id: "emp-1",
+    name: "Ananya Rao (అనన్య)",
+    avatar: "A",
+    avatarColor: "bg-indigo-600 text-white",
+    role: "Telugu Real Estate & Sales Caller",
+    voice: "Ananya (Warm Telugu & English)",
+    voiceModelTag: "Ananya · te-IN",
+    status: "Live",
+    language: "Telugu (తెలుగు) & English",
+    channel: "Campaigns",
+    phoneNumber: "+91 98480 12345",
+    lastActive: "Active today",
+    callsToday: 38,
+    leadsCount: 142,
+    qualifiedCount: 46,
+    totalCalls: 1248,
+    successRate: "34.2%",
+    avgDuration: "2m 45s",
+    objective: "Speak naturally in Telugu with real estate buyers, explain venture details, and book site visits.",
+  },
+  {
+    id: "emp-subbu",
+    name: "Subbu (సుబ్బు)",
+    avatar: "S",
+    avatarColor: "bg-emerald-600 text-white",
+    role: "B2B Trade & Order Dispatch Caller",
+    voice: "Subbu (Authoritative Telugu)",
+    voiceModelTag: "Subbu · te-IN",
+    status: "Live",
+    language: "Telugu (తెలుగు) & English",
+    channel: "Inbound",
+    phoneNumber: "+91 98480 99999",
+    lastActive: "Active today",
+    callsToday: 24,
+    leadsCount: 65,
+    qualifiedCount: 22,
+    totalCalls: 780,
+    successRate: "41.0%",
+    avgDuration: "2m 10s",
+    objective: "Proactive commercial caller for retail merchants, wholesale orders, and payment reminders.",
+  },
+];
+
+export const INITIAL_LEADS: Lead[] = [
+  {
+    id: "lead-1",
+    name: "Rajesh Goud",
+    company: "Fortune Heights Ventures, Hyderabad",
+    email: "rajesh.goud@gmail.com",
+    phone: "+91 98480 12345",
+    status: "Meeting Booked",
+    assignedAgent: "Ananya Rao (అనన్య)",
+    lastContact: "15 min ago",
+    dealSize: "₹18,50,000",
+  },
+  {
+    id: "lead-2",
+    name: "Dr. Lakshmi Prasanna",
+    company: "KIMS Care Clinic, Vijayawada",
+    email: "dr.lakshmi@kimscare.org",
+    phone: "+91 94401 56789",
+    status: "Qualified",
+    assignedAgent: "Harika Devi (హారిక)",
+    lastContact: "1 hour ago",
+    dealSize: "₹85,000",
+  },
+  {
+    id: "lead-3",
+    name: "Venkata Subba Rao",
+    company: "Sri Balaji Wholesale Traders, Vizag",
+    email: "vsubbarao@balajitraders.in",
+    phone: "+91 89781 23456",
+    status: "In Progress",
+    assignedAgent: "Suresh Kumar (సురేష్)",
+    lastContact: "Today, 11:30 AM",
+    dealSize: "₹3,40,000",
+  },
+  {
+    id: "lead-4",
+    name: "Sravani Reddy",
+    company: "Amaravati Green Spaces, Guntur",
+    email: "sravani@amaravatiinfra.com",
+    phone: "+91 70931 45678",
+    status: "New",
+    assignedAgent: "Ananya Rao (అనన్య)",
+    lastContact: "Never",
+    dealSize: "₹12,00,000",
+  },
+  {
+    id: "lead-5",
+    name: "Kiran Kumar",
+    company: "Tirupati Agro Supplies, Tirupati",
+    email: "kiran@tirupatiagro.com",
+    phone: "+91 91770 34567",
+    status: "Disqualified",
+    assignedAgent: "Venkat Reddy (వెంకట్)",
+    lastContact: "Yesterday",
+    dealSize: "₹0",
+  },
+  {
+    id: "lead-6",
+    name: "Divya Varma",
+    company: "Hyderabad Elite Properties, Madhapur",
+    email: "divya@eliteprop.in",
+    phone: "+91 99890 67890",
+    status: "Qualified",
+    assignedAgent: "Ananya Rao (అనన్య)",
+    lastContact: "Yesterday",
+    dealSize: "₹25,00,000",
+  },
+];
+
+export const INITIAL_CAMPAIGNS: Campaign[] = [
+  {
+    id: "camp-1",
+    name: "Hyderabad Open Plots Site Visit Campaign",
+    status: "Running",
+    agentName: "Ananya Rao (అనన్య)",
+    leadsTargeted: 500,
+    callsCompleted: 342,
+    connectedRate: "74.5%",
+    qualifiedRate: "32.0%",
+    schedule: "Mon-Sat 10:00 AM - 06:30 PM IST",
+  },
+  {
+    id: "camp-2",
+    name: "Vijayawada Clinic Patient Appointment Reminders",
+    status: "Running",
+    agentName: "Harika Devi (హారిక)",
+    leadsTargeted: 220,
+    callsCompleted: 195,
+    connectedRate: "88.2%",
+    qualifiedRate: "46.5%",
+    schedule: "Mon-Sat 09:00 AM - 07:00 PM IST",
+  },
+  {
+    id: "camp-3",
+    name: "Vizag Wholesale Customer Order Confirmation",
+    status: "Paused",
+    agentName: "Suresh Kumar (సురేష్)",
+    leadsTargeted: 180,
+    callsCompleted: 110,
+    connectedRate: "62.0%",
+    qualifiedRate: "28.5%",
+    schedule: "Mon-Fri 10:30 AM - 05:30 PM IST",
+  },
+  {
+    id: "camp-4",
+    name: "Monthly EMI & Fee Friendly Follow-up",
+    status: "Scheduled",
+    agentName: "Venkat Reddy (వెంకట్)",
+    leadsTargeted: 300,
+    callsCompleted: 0,
+    connectedRate: "0%",
+    qualifiedRate: "0%",
+    schedule: "Starts Monday 10:30 AM IST",
+  },
+];
+
+export const INITIAL_CALLS: CallRecord[] = [
+  {
+    id: "call-1",
+    leadName: "Rajesh Goud",
+    company: "Fortune Heights, Hyderabad",
+    phone: "+91 98480 12345",
+    agentName: "Ananya Rao (అనన్య)",
+    duration: "2m 55s",
+    durationSeconds: 175,
+    outcome: "Meeting Booked",
+    sentiment: "Positive",
+    timestamp: "12 min ago",
+    hasRecording: true,
+    transcriptSnippet: "నమస్కారం రాజేష్ గారు, ఫార్చ్యూన్ హైట్స్ ప్లాట్స్ సైట్ విజిట్ కోసం శనివారం ఉదయం 11 గంటలకు బుక్ చేశాను...",
+  },
+  {
+    id: "call-2",
+    leadName: "Dr. Lakshmi Prasanna",
+    company: "KIMS Care Clinic, Vijayawada",
+    phone: "+91 94401 56789",
+    agentName: "Harika Devi (హారిక)",
+    duration: "2m 15s",
+    durationSeconds: 135,
+    outcome: "Qualified",
+    sentiment: "Positive",
+    timestamp: "45 min ago",
+    hasRecording: true,
+    transcriptSnippet: "నమస్కారం మేడమ్, డాక్టర్ సంప్రదింపు సమయం ఖరారు చేసి వాట్సాప్‌లో కన్ఫర్మేషన్ పంపించాను...",
+  },
+  {
+    id: "call-3",
+    leadName: "Venkata Subba Rao",
+    company: "Sri Balaji Wholesale, Vizag",
+    phone: "+91 89781 23456",
+    agentName: "Suresh Kumar (సురేష్)",
+    duration: "1m 40s",
+    durationSeconds: 100,
+    outcome: "Callback",
+    sentiment: "Neutral",
+    timestamp: "2 hours ago",
+    hasRecording: true,
+    transcriptSnippet: "సురేష్ గారు, నేను ప్రయాణంలో ఉన్నాను. సాయంత్రం 5 గంటలకు కాల్ చేయండి...",
+  },
+  {
+    id: "call-4",
+    leadName: "Kiran Kumar",
+    company: "Tirupati Agro Supplies",
+    phone: "+91 91770 34567",
+    agentName: "Venkat Reddy (వెంకట్)",
+    duration: "1m 10s",
+    durationSeconds: 70,
+    outcome: "Not Interested",
+    sentiment: "Negative",
+    timestamp: "3 hours ago",
+    hasRecording: true,
+    transcriptSnippet: "ప్రస్తుతం మాకు కొత్త స్టాక్ అవసరం లేదు, ధన్యవాదాలు...",
+  },
+  {
+    id: "call-5",
+    leadName: "Divya Varma",
+    company: "Hyderabad Elite Properties",
+    phone: "+91 99890 67890",
+    agentName: "Ananya Rao (అనన్య)",
+    duration: "3m 45s",
+    durationSeconds: 225,
+    outcome: "Qualified",
+    sentiment: "Positive",
+    timestamp: "Yesterday",
+    hasRecording: true,
+    transcriptSnippet: "తెలుగు AI వాయిస్ చాలా స్పష్టంగా ఉంది. రేపు మా ఆఫీస్ లో ప్రెజెంటేషన్ చూద్దాం...",
+  },
+  {
+    id: "call-6",
+    leadName: "Sravani Reddy",
+    company: "Amaravati Green Spaces",
+    phone: "+91 70931 45678",
+    agentName: "Suresh Kumar (సురేష్)",
+    duration: "0m 45s",
+    durationSeconds: 45,
+    outcome: "Voicemail",
+    sentiment: "Neutral",
+    timestamp: "Yesterday",
+    hasRecording: true,
+    transcriptSnippet: "[Voice Note in Telugu] నమస్కారం శ్రావణి గారు, మీ విచారణ కోసం కాల్ చేసాము, మీకు వాట్సాప్ మెసేజ్ కూడా పంపాము...",
+  },
+];
+
+export const INITIAL_CONVERSATION_DETAILS: Record<string, ConversationDetail> = {
+  "call-1": {
+    id: "call-1",
+    leadName: "Rajesh Goud",
+    company: "Fortune Heights Ventures, Hyderabad",
+    phone: "+91 98480 12345",
+    agentName: "Ananya Rao (అనన్య)",
+    date: "Today at 11:15 AM IST",
+    duration: "2m 55s",
+    sentiment: "Positive",
+    outcome: "Meeting Booked — Site Visit Scheduled for Saturday 11:00 AM IST",
+    summary:
+      "Customer answered in Telugu and confirmed interest in purchasing an open plot (200 sq yards) near Shankarpally. He verified his budget around ₹18 to ₹20 Lakhs and agreed to a free cab pickup for site visit on Saturday morning.",
+    keyTakeaways: [
+      "Customer budget: ₹18,00,000 to ₹20,00,000",
+      "Preferred location: Shankarpally / Mokila road",
+      "Timeline: Immediate registration if HMDA/RERA approvals are verified",
+      "Follow-up: WhatsApp brochure sent to +91 98480 12345",
+    ],
+    actionItems: [
+      "WhatsApp brochure & Google Maps location shared with customer",
+      "Site visit car pickup booked for Saturday 10:30 AM IST",
+      "Assigned sales manager: Ramesh Reddy (+91 98480 99999)",
+    ],
+    transcript: [
+      { speaker: "AI Employee", time: "00:03", text: "నమస్కారం రాజేష్ గారు! నేను ఫార్చ్యూన్ హైట్స్ నుంచి అనన్యను మాట్లాడుతున్నాను. మీరు మా శంకరపల్లి ఓపెన్ ప్లాట్స్ గురించి ఎంక్వైరీ చేశారు కదా, ఇప్పుడు మాట్లాడటానికి మీకు వీలవుతుందా అండి?" },
+      { speaker: "Customer", time: "00:15", text: "నమస్తే అనన్య గారు. అవును మాట్లాడొచ్చు. ఆ ప్రాజెక్ట్ కి HMDA మరియు RERA అప్రూవల్స్ ఉన్నాయా?" },
+      { speaker: "AI Employee", time: "00:26", text: "తప్పకుండా అండి! మా ప్రాజెక్ట్ కి క్లియర్ టైటిల్ తో పాటు HMDA మరియు RERA అప్రూవల్స్ అన్నీ పూర్తయ్యాయి. బ్యాంక్ లోన్స్ కూడా అందుబాటులో ఉన్నాయి. మీరు ఎంత సైజు ప్లాట్ చూస్తున్నారు సార్?" },
+      { speaker: "Customer", time: "00:44", text: "నాకు దాదాపు 200 గజాల ఈస్ట్ ఫేసింగ్ ప్లాట్ కావాలి. బడ్జెట్ 18 నుంచి 20 లక్షల వరకు చూస్తున్నాను." },
+      { speaker: "AI Employee", time: "00:58", text: "ఖచ్చితంగా సార్, మీ బడ్జెట్ కి సరిపడే ఈస్ట్ ఫేసింగ్ ప్లాట్స్ అందుబాటులో ఉన్నాయి. ఈ శనివారం ఉదయం 11 గంటలకు సైట్ విజిట్ ప్లాన్ చేసుకుందామా సార్? మీకు మా కంపెనీ నుంచి ఉచిత కార్ పికప్ కూడా ఏర్పాటు చేస్తాము." },
+      { speaker: "Customer", time: "01:22", text: "చాలా బాగుంది అనన్య గారు. శనివారం ఉదయం 11 గంటలకు ఓకే. వివరాలు నా వాట్సాప్ కి పంపించండి." },
+      { speaker: "AI Employee", time: "01:34", text: "ధన్యవాదాలు రాజేష్ గారు! మీ నంబర్ +91 98480 12345 కి బ్రోచర్ మరియు లొకేషన్ వివరాలు వెంటనే వాట్సాప్ లో పంపించాను. శనివారం మా టీమ్ మిమ్మల్ని కలుస్తారు. హావ్ ఏ నైస్ డే సార్!" },
+    ],
+  },
+  "call-2": {
+    id: "call-2",
+    leadName: "Dr. Lakshmi Prasanna",
+    company: "KIMS Care Clinic, Vijayawada",
+    phone: "+91 94401 56789",
+    agentName: "Harika Devi (హారిక)",
+    date: "Today at 10:30 AM IST",
+    duration: "2m 15s",
+    sentiment: "Positive",
+    outcome: "Qualified — Requested Pricing for 5 Clinics",
+    summary:
+      "Dr. Lakshmi is interested in using Telugu AI calling to automatically remind patients of their appointments and reduce no-shows. Requested monthly package pricing for 5 clinic branches.",
+    keyTakeaways: [
+      "Current patient volume: 150+ patients per day across 5 clinics",
+      "Main need: Telugu patient reminder calls & WhatsApp location confirmation",
+      "Budget: Ready to start with Growth plan (₹9,999/month)",
+    ],
+    actionItems: [
+      "Send WhatsApp plan details and demo video to +91 94401 56789",
+      "Schedule online setup walkthrough for tomorrow 4:00 PM IST",
+    ],
+    transcript: [
+      { speaker: "AI Employee", time: "00:03", text: "నమస్కారం డాక్టర్ లక్ష్మి ప్రసన్న గారు, నేను SideMate నుంచి హారికను. మీ క్లినిక్ పేషెంట్లకు తెలుగులో ఆటోమేటిక్ అపాయింట్‌మెంట్ రిమైండర్ల గురించి మాట్లాడటానికి కాల్ చేశాను." },
+      { speaker: "Customer", time: "00:16", text: "హలో హారిక. అవునమ్మా, మాకు పేషెంట్లు రాక సమయం వృధా అవుతోంది. మీ AI సిస్టమ్ తెలుగులో స్పష్టంగా మాట్లాడుతుందా?" },
+      { speaker: "AI Employee", time: "00:28", text: "అవునండి డాక్టర్ గారు, ఇప్పుడు నేను మాట్లాడుతున్నట్లే చాలా సహజమైన తెలుగులో పేషెంట్ పేరు, సమయం మరియు డాక్టర్ పేరు చెప్పి నిర్ధారిస్తుంది. వారు నిర్ధారించగానే మీ సిస్టమ్ అప్‌డేట్ అవుతుంది." },
+      { speaker: "Customer", time: "00:46", text: "చాలా సంతోషం. మాకు 5 బ్రాంచీలు ఉన్నాయి. నెలవారీ ఖర్చు ఎంత అవుతుందో వాట్సాప్ చేయండి." },
+      { speaker: "AI Employee", time: "00:58", text: "తప్పకుండా మేడమ్! నెలకు ₹9,999 కి 2,500 తెలుగు కాలింగ్ నిమిషాలు లభిస్తాయి. పూర్తి వివరాలు ఇప్పుడే మీ వాట్సాప్ కి పంపాను. ధన్యవాదాలు మేడమ్!" },
+    ],
+  },
+};
+
+export const INITIAL_APPOINTMENTS: Appointment[] = [
+  {
+    id: "apt-1",
+    leadName: "Rajesh Goud",
+    company: "Fortune Heights, Hyderabad",
+    agentName: "Ananya Rao (అనన్య)",
+    date: "Saturday, Oct 24, 2026",
+    time: "11:00 AM - 12:30 PM IST",
+    duration: "90 mins",
+    type: "Site Visit (Shankarpally Open Plots)",
+    status: "Confirmed",
+    meetingLink: "https://maps.google.com/?q=Fortune+Heights+Shankarpally",
+  },
+  {
+    id: "apt-2",
+    leadName: "Dr. Lakshmi Prasanna",
+    company: "KIMS Care Clinic, Vijayawada",
+    agentName: "Harika Devi (హారిక)",
+    date: "Tomorrow, Oct 20, 2026",
+    time: "04:00 PM - 04:30 PM IST",
+    duration: "30 mins",
+    type: "Clinic Setup & Telugu Demo Video",
+    status: "Confirmed",
+    meetingLink: "https://meet.google.com/sdm-kims-clinic",
+  },
+  {
+    id: "apt-3",
+    leadName: "Divya Varma",
+    company: "Hyderabad Elite Properties",
+    agentName: "Ananya Rao (అనన్య)",
+    date: "Thursday, Oct 22, 2026",
+    time: "02:30 PM - 03:00 PM IST",
+    duration: "30 mins",
+    type: "Office Meeting & Partnership Review",
+    status: "Confirmed",
+    meetingLink: "https://meet.google.com/sdm-elite-hyderabad",
+  },
+];
+
+export const INITIAL_INTEGRATIONS: IntegrationItem[] = [
+  {
+    id: "whatsapp",
+    name: "WhatsApp Business API",
+    category: "Communication",
+    description: "Send automatic WhatsApp brochures, location maps, and booking confirmation in Telugu & English right after calls.",
+    connected: true,
+    lastSynced: "Just now",
+    badge: "Essential in India",
+  },
+  {
+    id: "razorpay",
+    name: "Razorpay / UPI Payment Links",
+    category: "Automation",
+    description: "Send instant UPI / QR payment links over SMS and WhatsApp during or after customer calls.",
+    connected: true,
+    lastSynced: "Active",
+    badge: "Popular",
+  },
+  {
+    id: "google-calendar",
+    name: "Google Calendar",
+    category: "Calendar",
+    description: "AI callers check your open timings and book site visits & doctor appointments onto your calendar.",
+    connected: true,
+    lastSynced: "Active",
+    badge: "Calendar",
+  },
+  {
+    id: "sheets",
+    name: "Google Sheets & Excel CSV",
+    category: "Automation",
+    description: "Import phone numbers directly from Google Sheets and log all call results and interested customers automatically.",
+    connected: true,
+    lastSynced: "5 minutes ago",
+  },
+  {
+    id: "zoho",
+    name: "Zoho CRM",
+    category: "CRM",
+    description: "Sync customer leads, call recordings, Telugu notes, and deal stages with Zoho CRM automatically.",
+    connected: false,
+  },
+  {
+    id: "exotel",
+    name: "Indian Phone Numbers (Exotel / Airtel / Jio)",
+    category: "Communication",
+    description: "Make calls using your own Indian business landline or mobile numbers with true local caller ID.",
+    connected: true,
+    lastSynced: "+91 98480 12345",
+  },
+];

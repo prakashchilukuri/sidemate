@@ -1,0 +1,459 @@
+datasource db {
+  provider = "postgresql"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  OWNER
+  ADMIN
+  MEMBER
+  VIEWER
+}
+
+enum AgentStatus {
+  ACTIVE
+  PAUSED
+  TRAINING
+}
+
+enum LeadStatus {
+  NEW
+  IN_PROGRESS
+  QUALIFIED
+  MEETING_BOOKED
+  DISQUALIFIED
+}
+
+enum CampaignStatus {
+  DRAFT
+  RUNNING
+  PAUSED
+  COMPLETED
+  ARCHIVED
+}
+
+enum CampaignLeadStatus {
+  PENDING
+  DIALED
+  CONNECTED
+  CONVERTED
+  FAILED
+}
+
+enum CallDirection {
+  OUTBOUND
+  INBOUND
+}
+
+enum CallStatus {
+  INITIATED
+  RINGING
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+  BUSY
+  NO_ANSWER
+}
+
+enum CallOutcome {
+  QUALIFIED
+  MEETING_BOOKED
+  CALLBACK
+  VOICEMAIL
+  NOT_INTERESTED
+  UNREACHABLE
+}
+
+enum CallSentiment {
+  POSITIVE
+  NEUTRAL
+  NEGATIVE
+}
+
+enum AppointmentStatus {
+  CONFIRMED
+  COMPLETED
+  RESCHEDULED
+  CANCELLED
+}
+
+enum IntegrationProvider {
+  HUBSPOT
+  SALESFORCE
+  GOOGLE_CALENDAR
+  CALENDLY
+  SLACK
+  TWILIO
+  ZAPIER
+  WEBHOOK
+}
+
+enum IntegrationStatus {
+  CONNECTED
+  DISCONNECTED
+  ERROR
+}
+
+enum SubscriptionTier {
+  STARTER
+  GROWTH
+  SCALE
+  ENTERPRISE
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  TRIALING
+}
+
+enum UsageMetric {
+  MINUTES_CONSUMED
+  SYNTHESIS_CHARACTERS
+  PHONE_NUMBERS_LEASED
+}
+
+// -------------------------------------------------------------
+// 1. Users & Tenant Isolation (Organization + Membership)
+// -------------------------------------------------------------
+
+model User {
+  id           String       @id @default(cuid())
+  email        String       @unique
+  name         String
+  passwordHash String
+  avatarUrl    String?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  memberships  Membership[]
+  auditLogs    AuditLog[]
+
+  @@map("users")
+}
+
+model Organization {
+  id          String       @id @default(cuid())
+  name        String
+  slug        String       @unique
+  domain      String?
+  callerId    String?
+  timezone    String       @default("America/New_York")
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  memberships   Membership[]
+  aiEmployees   AIEmployee[]
+  leads         Lead[]
+  campaigns     Campaign[]
+  calls         Call[]
+  conversations Conversation[]
+  appointments  Appointment[]
+  integrations  Integration[]
+  subscription  Subscription?
+  usageRecords  UsageRecord[]
+  apiKeys       ApiKey[]
+  auditLogs     AuditLog[]
+
+  @@map("organizations")
+}
+
+model Membership {
+  id             String       @id @default(cuid())
+  userId         String
+  organizationId String
+  role           Role         @default(MEMBER)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, organizationId])
+  @@index([organizationId])
+  @@map("memberships")
+}
+
+// -------------------------------------------------------------
+// 2. AI Employees
+// -------------------------------------------------------------
+
+model AIEmployee {
+  id              String       @id @default(cuid())
+  organizationId  String
+  name            String
+  role            String
+  avatar          String       @default("AI")
+  voiceId         String       @default("nova")
+  language        String       @default("en-US")
+  tone            String       @default("Confident & Consultative")
+  systemPrompt    String       @db.Text
+  objectionPrompt String?      @db.Text
+  firstMessage    String?      @db.Text
+  status          AgentStatus  @default(ACTIVE)
+  calendarUrl     String?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  campaigns    Campaign[]
+  calls        Call[]
+  appointments Appointment[]
+
+  @@index([organizationId])
+  @@map("ai_employees")
+}
+
+// -------------------------------------------------------------
+// 3. Leads and Contacts
+// -------------------------------------------------------------
+
+model Lead {
+  id             String      @id @default(cuid())
+  organizationId String
+  name           String
+  company        String?
+  email          String
+  phone          String
+  status         LeadStatus  @default(NEW)
+  dealSize       String?
+  assignedAgentId String?
+  lastContactAt  DateTime?
+  customFields   Json?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  calls          Call[]
+  appointments   Appointment[]
+  campaignLeads  CampaignLead[]
+
+  @@index([organizationId])
+  @@index([organizationId, email])
+  @@index([organizationId, phone])
+  @@map("leads")
+}
+
+// -------------------------------------------------------------
+// 4. Calling Campaigns & Cadences
+// -------------------------------------------------------------
+
+model Campaign {
+  id              String         @id @default(cuid())
+  organizationId  String
+  name            String
+  status          CampaignStatus @default(DRAFT)
+  assignedAgentId String
+  dialWindowStart String         @default("09:00")
+  dialWindowEnd   String         @default("17:30")
+  dialTimezone    String         @default("EST")
+  maxDailyDials   Int            @default(250)
+  retryAttempts   Int            @default(3)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  organization  Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  assignedAgent AIEmployee     @relation(fields: [assignedAgentId], references: [id])
+  campaignLeads CampaignLead[]
+  calls         Call[]
+
+  @@index([organizationId])
+  @@map("campaigns")
+}
+
+model CampaignLead {
+  id         String             @id @default(cuid())
+  campaignId String
+  leadId     String
+  status     CampaignLeadStatus @default(PENDING)
+  attempts   Int                @default(0)
+  createdAt  DateTime           @default(now())
+  updatedAt  DateTime           @updatedAt
+
+  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  lead     Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@unique([campaignId, leadId])
+  @@index([campaignId])
+  @@map("campaign_leads")
+}
+
+// -------------------------------------------------------------
+// 5. Calls & Conversational Transcripts
+// -------------------------------------------------------------
+
+model Call {
+  id              String        @id @default(cuid())
+  organizationId  String
+  leadId          String
+  agentId         String
+  campaignId      String?
+  direction       CallDirection @default(OUTBOUND)
+  status          CallStatus    @default(COMPLETED)
+  outcome         CallOutcome   @default(QUALIFIED)
+  durationSeconds Int           @default(0)
+  sentiment       CallSentiment @default(NEUTRAL)
+  recordingUrl    String?
+  costCredits     Float         @default(0.0)
+  startedAt       DateTime      @default(now())
+  endedAt         DateTime?
+  createdAt       DateTime      @default(now())
+
+  organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  lead         Lead          @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  agent        AIEmployee    @relation(fields: [agentId], references: [id])
+  campaign     Campaign?     @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  conversation Conversation?
+
+  @@index([organizationId])
+  @@index([organizationId, startedAt])
+  @@map("calls")
+}
+
+model Conversation {
+  id             String   @id @default(cuid())
+  callId         String   @unique
+  organizationId String
+  summary        String   @db.Text
+  keyTakeaways   Json     // String[] array in JSON
+  actionItems    Json     // String[] array in JSON
+  transcript     Json     // { speaker: string, time: string, text: string }[]
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  call         Call         @relation(fields: [callId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@map("conversations")
+}
+
+// -------------------------------------------------------------
+// 6. Appointments
+// -------------------------------------------------------------
+
+model Appointment {
+  id              String            @id @default(cuid())
+  organizationId  String
+  leadId          String
+  agentId         String
+  title           String
+  scheduledAt     DateTime
+  durationMinutes Int               @default(30)
+  status          AppointmentStatus @default(CONFIRMED)
+  meetingUrl      String?
+  calendarEventId String?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  lead         Lead         @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  agent        AIEmployee   @relation(fields: [agentId], references: [id])
+
+  @@index([organizationId])
+  @@index([organizationId, scheduledAt])
+  @@map("appointments")
+}
+
+// -------------------------------------------------------------
+// 7. Integrations & Webhooks
+// -------------------------------------------------------------
+
+model Integration {
+  id             String              @id @default(cuid())
+  organizationId String
+  provider       IntegrationProvider
+  name           String
+  status         IntegrationStatus   @default(DISCONNECTED)
+  config         Json?               // credentials / endpoints / tokens
+  lastSyncedAt   DateTime?
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, provider])
+  @@index([organizationId])
+  @@map("integrations")
+}
+
+// -------------------------------------------------------------
+// 8. Subscription Plans & Telephony Usage Records
+// -------------------------------------------------------------
+
+model Subscription {
+  id                     String             @id @default(cuid())
+  organizationId         String             @unique
+  tier                   SubscriptionTier   @default(GROWTH)
+  status                 SubscriptionStatus @default(ACTIVE)
+  monthlyMinutesQuota    Int                @default(2500)
+  extraMinutesPurchased  Int                @default(0)
+  maxAgents              Int                @default(10)
+  maxConcurrentTrunks    Int                @default(5)
+  currentPeriodStart     DateTime           @default(now())
+  currentPeriodEnd       DateTime
+  stripeCustomerId       String?
+  stripeSubscriptionId   String?
+  createdAt              DateTime           @default(now())
+  updatedAt              DateTime           @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@map("subscriptions")
+}
+
+model UsageRecord {
+  id             String      @id @default(cuid())
+  organizationId String
+  metric         UsageMetric
+  quantity       Float
+  referenceId    String?
+  recordedAt     DateTime    @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([organizationId, metric, recordedAt])
+  @@map("usage_records")
+}
+
+// -------------------------------------------------------------
+// 9. API Keys & Audit Logs
+// -------------------------------------------------------------
+
+model ApiKey {
+  id             String    @id @default(cuid())
+  organizationId String
+  name           String
+  keyHash        String    @unique
+  prefix         String
+  lastUsedAt     DateTime?
+  expiresAt      DateTime?
+  createdAt      DateTime  @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@map("api_keys")
+}
+
+model AuditLog {
+  id             String   @id @default(cuid())
+  organizationId String
+  userId         String?
+  action         String
+  resource       String
+  details        Json?
+  ipAddress      String?
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId])
+  @@map("audit_logs")
+}

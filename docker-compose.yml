@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: sidemate-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: sidemate_user
+      POSTGRES_PASSWORD: sidemate_password_dev
+      POSTGRES_DB: sidemate_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sidemate_user -d sidemate_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: sidemate-redis
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+  voice-service:
+    build:
+      context: ./services/voice
+      dockerfile: Dockerfile
+    container_name: sidemate-voice
+    restart: always
+    environment:
+      REDIS_URL: redis://redis:6379
+      PORT: 8000
+    ports:
+      - "8000:8000"
+    depends_on:
+      - redis
+
+volumes:
+  postgres_data:
+  redis_data:
