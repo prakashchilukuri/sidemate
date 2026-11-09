@@ -40,3 +40,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Python voice service
+.venv/
+__pycache__/
+.pytest_cache/
+*.pyc

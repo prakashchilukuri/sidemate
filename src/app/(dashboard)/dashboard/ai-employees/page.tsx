@@ -121,7 +121,6 @@ export default function AIEmployeesPage() {
 
       const emp = instantCallModal.employee!;
       const voiceId = emp.voice.toLowerCase().includes("suresh") ? "suresh" : "ananya";
-      audioEngine.previewVoice(voiceId, 1.0, 1.0, selectedAmbient, ambientVolume);
 
       // Add conversational turns over time
       const greetingTurn = {
@@ -130,6 +129,7 @@ export default function AIEmployeesPage() {
         text: `నమస్కారం ${directLeadName} గారు! నేను మీ బిజినెస్ వెంచర్ నుంచి ${emp.name} మాట్లాడుతున్నాను. మీరు సేవల గురించి ఎంక్వైరీ చేశారు కదా, ఇప్పుడు మాట్లాడటానికి 2 నిమిషాలు సమయం ఉంటుందా అండి?`,
       };
       setCallTranscript([greetingTurn]);
+      audioEngine.playVoice(voiceId, greetingTurn.text, selectedAmbient, ambientVolume);
 
       setTimeout(() => {
         setCallTranscript((prev) => [

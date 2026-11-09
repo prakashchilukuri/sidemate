@@ -37,8 +37,11 @@ services:
     environment:
       REDIS_URL: redis://redis:6379
       PORT: 8000
+      VOICE_LAB_ACCESS_KEY: ${VOICE_LAB_ACCESS_KEY:-}
+      SARVAM_API_KEY: ${SARVAM_API_KEY:-}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     depends_on:
       - redis
 

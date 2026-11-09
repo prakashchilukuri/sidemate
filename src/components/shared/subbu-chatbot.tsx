@@ -230,7 +230,7 @@ export function SubbuChatbot() {
 
   const handleActionClick = (action: NonNullable<ChatMessage["actions"]>[number]) => {
     if (action.onClickType === "audio-demo") {
-      audioEngine.previewVoice("ananya", 0.98, 1.05, "office", 20);
+      audioEngine.playVoice("ananya", "నమస్కారం! నేను సైడ్‌మేట్ వాయిస్ డెమో. మీకు ఎలా సహాయం చేయగలను?", "office", 20);
       const audioFeedbackMsg: ChatMessage = {
         id: `sb-audio-${Date.now()}`,
         sender: "subbu",

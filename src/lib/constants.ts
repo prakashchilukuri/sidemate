@@ -29,6 +29,7 @@ export const DASHBOARD_NAV_SECTIONS: NavSection[] = [
       { label: "Dashboard", href: "/dashboard", icon: "LayoutDashboard" },
       { label: "My Employees", href: "/dashboard/ai-employees", icon: "Users", badge: "3", badgeVariant: "purple" },
       { label: "New employee", href: "/dashboard/ai-employees/new", icon: "Plus" },
+      { label: "Voice lab", href: "/dashboard/voice-lab", icon: "PhoneCall", badge: "Preview" },
       { label: "Talk to an employee", href: "/dashboard/calls", icon: "PhoneCall" },
     ],
   },

@@ -1,3 +1,5 @@
+import type { AIEmployeeFullConfig } from "./types/ai-employee-builder";
+
 export type EmployeeStatus = "Live" | "Active" | "Draft" | "Building" | "Ready" | "Paused" | "Changes pending";
 
 export interface AIEmployee {

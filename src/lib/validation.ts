@@ -150,7 +150,7 @@ export const FullAIEmployeeBuilderSchema = z.object({
   businessHours: BusinessHoursSchema,
   escalation: EscalationSchema,
   telephony: TelephonySchema,
-  status: z.string().default("Live"),
+  status: z.enum(["Live", "Active", "Draft", "Building", "Ready", "Paused", "Training"]).default("Live"),
 });
 
 // Standard API Schemas

@@ -1,3 +1,5 @@
+import type { AmbientSoundId } from "../audio-engine";
+
 export type PrimaryTaskType =
   | "lead_qualification"
   | "sales_calls"
@@ -12,7 +14,7 @@ export type CommunicationStyleType =
   | "authoritative"
   | "empathetic";
 
-export type AmbientNoiseType = "none" | "office" | "callcenter" | "quiet";
+export type AmbientNoiseType = AmbientSoundId;
 
 export type AgentStatusType = "Live" | "Active" | "Draft" | "Building" | "Ready" | "Paused" | "Training";
 

@@ -389,7 +389,7 @@ function HeroSection() {
                               : "bg-slate-700"
                           }`}
                           style={{
-                            height: isPlaying ? `${Math.max(25, (h * (0.4 + (i % 3) * 0.3)).toFixed(0))}%` : "20%",
+                            height: isPlaying ? `${Math.max(25, Math.round(h * (0.4 + (i % 3) * 0.3)))}%` : "20%",
                           }}
                         />
                       ))}
@@ -820,7 +820,7 @@ function InteractiveLiveDemoSection() {
                           : "bg-slate-700"
                       }`}
                       style={{
-                        height: isPlayingAudio ? `${Math.max(15, (h * Math.random()).toFixed(0))}%` : `${h * 0.4}%`,
+                        height: isPlayingAudio ? `${Math.max(15, Math.round(h * (0.4 + (i % 3) * 0.3)))}%` : `${h * 0.4}%`,
                       }}
                     />
                   ))}
