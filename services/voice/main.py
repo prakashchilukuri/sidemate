@@ -1,4 +1,4 @@
-"""Restricted single-worker voice lab. No telephony or booking simulations."""
+"""Browser voice lab and restricted callback pilot."""
 import asyncio
 import base64
 import binascii
@@ -22,6 +22,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, ValidationError
 
 from .providers import FREE_REASONING_MODELS, ProviderError, VoiceProviders
+from .callbacks import setup_callbacks
 
 load_dotenv(Path(__file__).with_name(".env"))
 STATIC = Path(__file__).with_name("static")
@@ -107,7 +108,7 @@ def bearer(request):
     return header[7:] if header.startswith("Bearer ") else ""
 
 
-def create_app(settings=None, providers=None):
+def create_app(settings=None, providers=None, callback_db=None, callback_transport=None):
     settings = settings or Settings()
     sessions = {}
 
@@ -128,7 +129,9 @@ def create_app(settings=None, providers=None):
                             del sessions[key]
             reaper = asyncio.create_task(reap_expired())
             try:
-                yield
+                async with httpx.AsyncClient(timeout=15, transport=callback_transport) as carrier:
+                    app.state.http = carrier
+                    yield
             finally:
                 tasks = [reaper, *[s.task for s in sessions.values() if s.task and not s.task.done()]]
                 for task in tasks:
@@ -169,11 +172,19 @@ def create_app(settings=None, providers=None):
     @app.get("/health")
     async def health():
         return {"status": "ok", "mode": "turn-based-lab", "providers_configured": not settings.missing(),
-                "telephony_enabled": False}
+                "telephony_enabled": callbacks_enabled and not settings.missing()}
 
     @app.get("/lab")
     async def lab():
         return FileResponse(STATIC / "index.html")
+
+    @app.get("/callbacks")
+    async def callback_page():
+        return FileResponse(STATIC / "callbacks.html")
+
+    @app.get("/sales")
+    async def sales_page():
+        return FileResponse(STATIC / "sales.html")
 
     @app.get("/v1/voice/config")
     async def config(request: Request):
@@ -277,6 +288,7 @@ def create_app(settings=None, providers=None):
     async def not_implemented():
         return JSONResponse({"detail": "Not implemented in the browser voice milestone."}, status_code=501)
 
+    callbacks_enabled = setup_callbacks(app, settings, SessionRequest, read_model, callback_db)
     app.mount("/static", StaticFiles(directory=STATIC), name="static")
     return app
 

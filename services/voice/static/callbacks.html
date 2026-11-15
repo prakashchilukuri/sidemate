@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SideMate · Test callback</title>
+  <link rel="stylesheet" href="/static/lab.css">
+  <script type="module" src="/static/callbacks.js"></script>
+</head>
+<body>
+<main>
+  <header><a class="brand" href="/lab">SideMate</a><a href="/lab">Voice demo</a></header>
+  <h1>Test a phone callback</h1>
+  <p class="intro">Ring the configured test handset and review how the conversation went.</p>
+  <div class="grid">
+    <form id="callback" class="panel">
+      <h2>Call setup</h2>
+      <label for="key">Callback operator key</label>
+      <input id="key" type="password" autocomplete="off" required>
+      <label for="phone">Test handset number</label>
+      <input id="phone" type="tel" placeholder="+91…" pattern="\+91[6-9][0-9]{9}" required>
+      <label for="language">Reply language</label>
+      <select id="language"><option value="te-IN" lang="te">తెలుగు</option><option value="en-IN">English</option></select>
+      <label for="business">Business information</label>
+      <textarea id="business" rows="4" minlength="10" maxlength="6000" required>The sample shop opens at 9 AM and closes at 6 PM every day.</textarea>
+      <button id="dial" type="submit">Place test call</button>
+    </form>
+    <section class="panel" aria-labelledby="outcome-heading">
+      <h2 id="outcome-heading">Call outcome</h2>
+      <p id="status" role="status">Ready to place a call.</p>
+      <p id="error" role="alert"></p>
+      <div id="transcript" role="log" aria-live="polite"></div>
+      <button id="refresh" type="button" class="secondary" disabled>Refresh outcome</button>
+    </section>
+  </div>
+</main>
+</body>
+</html>

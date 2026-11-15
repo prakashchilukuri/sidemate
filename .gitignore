@@ -42,6 +42,7 @@ yarn-error.log*
 next-env.d.ts
 
 # Python voice service
+/services/voice/callbacks.sqlite3*
 .venv/
 __pycache__/
 .pytest_cache/

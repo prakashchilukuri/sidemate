@@ -85,12 +85,12 @@ class VoiceProviders:
         except (KeyError, IndexError, TypeError, ValueError, AttributeError):
             raise ProviderError("Dialogue model returned an incomplete or invalid reply.") from None
 
-    async def synthesize(self, text, language):
+    async def synthesize(self, text, language, sample_rate=24000):
         speaker = self.settings.telugu_voice if language == "te-IN" else self.settings.english_voice
         result = await self.post("Speech generation", "https://api.sarvam.ai/text-to-speech",
             headers={"api-subscription-key": self.settings.sarvam_key},
             json={"text": text, "language_code": language, "model": self.settings.tts_model,
-                  "speaker": speaker, "speech_sample_rate": 24000, "output_audio_codec": "wav"})
+                  "speaker": speaker, "speech_sample_rate": sample_rate, "output_audio_codec": "wav"})
         try:
             audios = result["audios"]
             if len(audios) != 1 or len(audios[0]) > 4_000_000:

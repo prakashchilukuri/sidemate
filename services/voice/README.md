@@ -1,5 +1,27 @@
 # Browser voice milestone
 
+## Lead-to-call pilot (2026-11-15)
+
+`POST /v1/voice/leads` uses the callback operator bearer key and accepts the
+callback fields (`request_id`, `phone`, `language`, `business_context`) plus
+`name`, `source`, `enquiry`, and the strict boolean `consent_to_call: true`.
+Use synthetic enquiries and the configured owned test handset only.
+The endpoint persists the lead before attempting an Exotel submission. Reuse
+the same request ID and identical payload on retries; changed payloads return
+409. A 202 response is an accepted request, not proof the phone rang: inspect
+the returned carrier status. Unknown submissions must not be retried with a new ID.
+
+After an attached conversation ends, `GET /v1/voice/sales-tasks` with the same
+operator key returns up to 100 persistent review tasks with lead information,
+actual transcript and conversation status. These are unqualified `needs_review`
+tasks, not automatically scored leads or confirmed bookings. Lead metadata is
+stored for human review; the voice still uses supplied business context.
+
+This is a restricted single-business backend integration, not a Meta webhook
+or production queue. Automatic recovery of leads interrupted before submission,
+calling-hour scheduling, qualification extraction, external CRM delivery and
+a sales-task UI remain outstanding. No carrier calls are made by automated tests.
+
 This is a restricted internal, **turn-based** lab. It sends real requests to Sarvam recognition, OpenRouter Chat Completions and Sarvam synthesis when credentials are configured. No runtime fake provider or fallback reply is enabled. Test doubles exist only under `tests/`.
 
 ## Run locally
@@ -64,3 +86,32 @@ Still required: credentialed Telugu/English sessions, native-speaker evaluation,
 Dialogue is restricted to Nemotron 3.5 Super VL, Nemotron 3 Ultra 550B and Gemma 4 31B, with explicit `:free` IDs. The configured primary is tried first; OpenRouter may fall back only within this shortlist. Each request sets prompt/completion/request price ceilings to zero, requires supported parameters and enables high reasoning effort. Only final message content is spoken; reasoning fields are excluded. Actual returned model and reported USD cost are recorded in turn usage. Free routes have capacity/rate limits and may fail; paid or unlisted IDs are rejected locally. Sarvam speech remains independently billed.
 
 To run an opt-in live text check with synthetic facts: `python -m services.voice.tests.live_openrouter`. This uses OpenRouter only, not Sarvam audio. The internal integration tests use fake credentials and make no provider calls.
+
+## Exotel test callback
+
+Set the Exotel account SID, API key, API token, and provisioned caller ID in
+`services/voice/.env`. Set `EXOTEL_TEST_NUMBER` to an Indian mobile you control
+in +91 format, `EXOTEL_OPERATOR_KEY` to a separate random key of at least 32
+characters, and `EXOTEL_STREAM_ORIGIN` to the reachable secure WebSocket
+origin (for example, wss://voice.example.com). Route the callback media path
+to this service. Configure the proxy and server to omit the media URL query
+string from logs, since it contains a short-lived connection token.
+
+Run Uvicorn with one worker and open http://localhost:8000/callbacks.
+Enter the callback operator key and test handset number, then place the
+call. Answer, ask about opening hours, and wait for the response before
+asking a follow-up. Refresh the outcome after hanging up. The carrier
+status comes from Exotel Call Details, and the conversation transcript is
+saved to SQLite. Use `EXOTEL_CALLBACK_DB` on a persistent volume if deployed
+in a container. Audio recording is disabled.
+
+A request whose submission is unknown may already have reached Exotel.
+Retrying the same request ID retrieves the existing call record without
+dialing again. Check the Exotel dashboard before initiating a new attempt.
+The pilot uses pauses to detect the end of a turn and waits for playback
+to finish before listening. The simulated integration test covers dial
+submission, audio exchange, and transcript retrieval after restart.
+
+- https://developer.exotel.com/docs/agentstream/connect-voice-ai
+- https://developer.exotel.com/docs/agentstream/websocket-protocol
+- https://developer.exotel.com/docs/voice-v1/api-reference/call-details

@@ -1,0 +1,41 @@
+const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/kkous/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
+const assert = require('node:assert/strict');
+(async()=>{
+ const browser=await chromium.launch({channel:'msedge',headless:true});
+ try {
+ const page=await browser.newPage({viewport:{width:1280,height:1000}}); const errors=[]; page.on('pageerror',e=>errors.push(e.message));
+ await page.goto('http://127.0.0.1:8130/sales');
+ await page.locator('#key').fill('synthetic-test-key');
+ await page.locator('#name').fill('Ravi - synthetic test');
+ await page.locator('#enquiry').fill('2BHK enquiry in Hyderabad');
+ await page.locator('#phone').fill('+919000000000');
+ await page.locator('#dial').click();
+ assert.equal(await page.locator('#consent').evaluate(e=>e.validity.valueMissing),true);
+ await page.locator('#consent').check(); await page.locator('#dial').click();
+ await page.getByText('Callback pilot is not configured.',{exact:true}).waitFor();
+ let submissions=[];
+ const call={carrier_status:'submission-unknown',conversation_status:'waiting',transcript:[]};
+ await page.route('**/v1/voice/leads',async route=>{submissions.push(route.request().postDataJSON());await route.fulfill({json:{lead_id:submissions.at(-1).request_id,call}})});
+ await page.locator('#dial').click(); await page.getByText('Phone status: submission-unknown · Conversation: waiting',{exact:true}).waitFor();
+ await page.locator('#dial').click();
+ await page.waitForFunction(()=>!document.getElementById('dial').disabled);
+ assert.equal(submissions.length,2); assert.equal(submissions[0].request_id,submissions[1].request_id);
+ const transcript=[{role:'user',content:'I would like details about a 2BHK.'},{role:'assistant',content:'What is your preferred area?'}];
+ await page.route('**/v1/voice/callbacks/*',route=>route.fulfill({json:{...call,carrier_status:'completed',conversation_status:'ended',transcript}}));
+ await page.locator('#refresh').click(); await page.getByText('Phone status: completed · Conversation: ended',{exact:true}).waitFor();
+ await page.route('**/v1/voice/sales-tasks',route=>route.fulfill({json:{items:[{call_id:'synthetic-call-01',status:'needs_review',conversation_status:'ended',lead:{name:'Ravi - synthetic test',phone:'+919000000000',source:'Website test form',enquiry:'2BHK enquiry in Hyderabad'},transcript}]}}));
+ await page.locator('#load-tasks').click(); await page.getByText('Ravi - synthetic test - Needs review',{exact:true}).waitFor();
+ await page.getByText('Read conversation',{exact:true}).click();
+ await page.locator('#key').fill('');
+ await page.evaluate(()=>{const p=document.createElement('p');p.textContent='TEST PREVIEW: simulated call and inbox data. No real call was placed.';p.style.color='#ffdb83';document.querySelector('h1').after(p)});
+ await page.screenshot({path:'../../outputs/sidemate-sales-pilot-desktop.png',fullPage:true});
+ await page.setViewportSize({width:390,height:844});
+ assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+ await page.screenshot({path:'../../outputs/sidemate-sales-pilot-mobile.png',fullPage:true});
+ await page.route('**/v1/voice/sales-tasks',route=>route.fulfill({json:{items:[]}}));
+ await page.locator('#load-tasks').click(); await page.getByText('No tasks yet. Refresh after a lead conversation ends.',{exact:true}).waitFor();
+ assert.equal(await page.locator('#tasks article').count(),0);assert.deepEqual(errors,[]);
+ console.log(JSON.stringify({passed:true,checks:['required consent','real backend unconfigured error','same-ID retry','call status and transcript','sales inbox','empty inbox clears old data','390px mobile overflow','no JS errors'],live_call:false,success_responses:'browser fixtures'}));
+ } finally {await browser.close()}
+})().catch(e=>{console.error(e);process.exit(1)});
+

@@ -5,6 +5,19 @@ let controller = null, generation = 0, turns = [];
 const status = (message) => { el("status").textContent = message; };
 const error = (message = "") => { el("error").textContent = message; };
 
+el("language").addEventListener("change", () => {
+  const telugu = el("language").value === "te-IN";
+  el("prompt").lang = telugu ? "te" : "en";
+  el("prompt").textContent = telugu ? "మీ దుకాణం ఎప్పుడు తెరుస్తారు?" : "What time does your shop open?";
+});
+
+const players = document.querySelectorAll("audio");
+for (const player of players) {
+  player.addEventListener("play", () => {
+    for (const other of players) if (other !== player) other.pause();
+  });
+}
+
 function controls() {
   el("start").disabled = busy || !!session;
   el("end").disabled = !session;
@@ -69,10 +82,21 @@ function appendTurn(role, text, metrics = "") {
 
 el("start").addEventListener("click", async () => {
   error();
+  el("setup-error").textContent = "";
   const key = el("access").value.trim();
   const context = el("context").value.trim();
-  if (key.length < 32 || context.length < 10) { error("Enter a lab key of at least 32 characters and business information of at least 10 characters."); return; }
-  busy = true; controls(); status("Checking provider configuration…");
+  if (key.length < 32) {
+    el("setup-error").textContent = "Enter the full lab access key from your invitation.";
+    el("access").focus();
+    return;
+  }
+  if (context.length < 10) {
+    el("setup-error").textContent = "Add a short description of the sample business.";
+    el("context").closest("details").open = true;
+    el("context").focus();
+    return;
+  }
+  busy = true; controls(); status("Starting your conversation…");
   try {
     const config = await api("/v1/voice/config", key);
     if (config.missing.length) throw new Error(`Server configuration needed: ${config.missing.join(", ")}`);
@@ -82,9 +106,18 @@ el("start").addEventListener("click", async () => {
     el("models").textContent = `${config.models.stt} → ${config.models.llm} → ${config.models.tts}`;
     el("session-label").textContent = "Session ready";
     expiry = setTimeout(() => endSession("Session expired. Start a new session."), Math.max(0, session.expires_at * 1000 - Date.now()));
-    status("Session ready. Click Record message to begin.");
-  } catch (e) { error(e.message); status("Session did not start."); }
-  finally { busy = false; controls(); }
+    status("Select Record message, ask your question, then select Send recording.");
+  } catch (e) {
+    el("setup-error").textContent = e.message === "Invalid lab access key."
+      ? "Invalid lab access key. Check the key from your invitation and try again."
+      : e.message;
+    status("Session did not start.");
+  } finally {
+    busy = false;
+    controls();
+    if (session) el("record").focus();
+    else el("access").focus();
+  }
 });
 
 el("record").addEventListener("click", async () => {
@@ -92,6 +125,7 @@ el("record").addEventListener("click", async () => {
   if (!session || busy) return;
   const currentGeneration = generation;
   busy = true; controls(); error(); stopPlayback();
+  for (const player of players) player.pause();
   let stream, context;
   try {
     if (!navigator.mediaDevices?.getUserMedia) throw new Error("Microphone access requires localhost or HTTPS and a supported browser.");
@@ -125,6 +159,9 @@ async function sendRecording() {
   const audio = await releaseMic();
   if (currentGeneration !== generation) return;
   status("Recognizing your message and preparing a spoken reply…");
+  const waiting = setTimeout(() => {
+    if (currentGeneration === generation) status("Still preparing your reply. You can end the session if you need to leave.");
+  }, 6000);
   controller = new AbortController();
   try {
     const wav = encodeWav(audio.chunks, audio.sampleRate);
@@ -143,14 +180,18 @@ async function sendRecording() {
       const bytes = Uint8Array.from(atob(speech), (char) => char.charCodeAt(0));
       audioUrl = URL.createObjectURL(new Blob([bytes], { type: "audio/wav" }));
       el("player").src = audioUrl; el("player").hidden = false; el("stop-audio").disabled = false;
-      try { await el("player").play(); } catch { error("Automatic playback was blocked. Press Play on the audio player."); }
+      try { await el("player").play(); } catch {
+        if (currentGeneration === generation) error("Press Play below to hear SideMate’s reply.");
+      }
     }
+    if (currentGeneration !== generation) return;
     if (result.warning) error(result.warning);
     status(`${result.turns_remaining} turns remaining. Record another message when ready.`);
     if (!result.turns_remaining) status("Turn limit reached. End the session and export your transcript.");
   } catch (e) {
     if (currentGeneration === generation && e.name !== "AbortError") { error(e.message); status("Turn did not complete. You can record a new message."); }
   } finally {
+    clearTimeout(waiting);
     if (currentGeneration === generation) { busy = false; controls(); }
   }
 }

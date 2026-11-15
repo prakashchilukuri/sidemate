@@ -1,25 +1,55 @@
 <!doctype html>
 <html lang="en">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>SideMate · Voice lab</title><link rel="stylesheet" href="/static/lab.css"><script type="module" src="/static/lab.js"></script></head>
-<body><main>
-<header><a class="brand" href="/lab">SideMate <span>VOICE LAB</span></a><span class="badge">Internal preview · turn-based</span></header>
-<h1>A real conversation<br>starts with listening.</h1>
-<p class="intro">Test your assistant in Telugu or English. Record a short message, then hear its reply.</p>
-<div class="grid"><section class="panel"><h2>Set up your conversation</h2>
-<label for="access">Lab access key</label><input id="access" type="password" autocomplete="off" placeholder="Your internal lab key">
-<p class="hint">Use the lab key configured by your developer. Never enter a provider API key here.</p>
-<label for="language">Reply language</label><select id="language"><option value="te-IN">తెలుగు · Telugu</option><option value="en-IN">English · India</option></select>
-<label for="context">Approved business information</label><textarea id="context" rows="6" maxlength="6000" placeholder="Business name, services, opening hours and answers the assistant may use."></textarea>
-<p class="hint">This preview can answer questions. Booking, payments and outbound calls are not connected.</p>
-<button id="start">Start session</button><button id="end" class="secondary" disabled>End session</button>
-<p id="models" class="hint"></p>
-</section><section class="panel conversation"><div class="row"><h2>Conversation</h2><span id="session-label" class="badge">Not connected</span></div>
-<div id="transcript" role="log" aria-live="polite"><p class="empty">Your transcript and the assistant’s replies will appear here.</p></div>
-<p id="status" role="status">Ready to configure. Sessions last up to 15 minutes and 12 turns.</p>
-<p id="error" role="alert"></p>
-<div class="row controls"><button id="record" disabled>Record message</button><button id="stop-audio" class="secondary" disabled>Stop playback</button><button id="export" class="secondary" disabled>Export transcript</button></div>
-<audio id="player" controls hidden></audio>
-<p class="hint">Click Record, speak, then click Send. Each recording is limited to 24 seconds. Audio and text are sent to the configured AI providers. Session history is temporary.</p>
-</section></div>
-<footer>Browser voice milestone · Manual turns · No simulated replies · Live quality requires provider testing</footer>
-</main></body></html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Try SideMate</title>
+  <link rel="stylesheet" href="/static/lab.css">
+  <script type="module" src="/static/lab.js"></script>
+</head>
+<body>
+<main>
+  <header><a class="brand" href="/lab">SideMate</a><a href="/sales">Lead calling pilot</a></header>
+  <h1>Talk to SideMate</h1>
+  <p class="intro">Hear how SideMate answers a shop enquiry in Telugu or English. Then try a question with your microphone.</p>
+  <section class="panel" aria-labelledby="sample-heading">
+    <h2 id="sample-heading">Hear a sample</h2>
+    <div class="samples">
+      <div><p id="sample-te-label" lang="te">తెలుగు</p><audio controls preload="none" src="/static/sample-te.mp3" aria-labelledby="sample-te-label"></audio></div>
+      <div><p id="sample-en-label">English</p><audio controls preload="none" src="/static/sample-en.mp3" aria-labelledby="sample-en-label"></audio></div>
+    </div>
+  </section>
+  <div class="grid">
+    <section class="panel" aria-labelledby="setup-heading">
+      <h2 id="setup-heading">Try with your voice</h2>
+      <label for="language">Reply language</label>
+      <select id="language"><option value="te-IN">తెలుగు · Telugu</option><option value="en-IN">English · India</option></select>
+      <p class="hint">The sample shop is open every day from 9 a.m. to 6 p.m.</p>
+      <label for="access">Lab access key</label>
+      <input id="access" type="password" autocomplete="off" aria-describedby="access-help">
+      <p class="hint" id="access-help">Enter the key from your demo invitation. Ask the person who invited you if you need one.</p>
+      <button id="start" type="button">Start session</button>
+      <button id="end" type="button" class="secondary" disabled>End session</button>
+      <p id="setup-error" role="alert"></p>
+      <details>
+        <summary>Edit sample business</summary>
+        <label for="context">Approved business information</label>
+        <textarea id="context" rows="4" maxlength="6000">The sample shop opens at 9 AM and closes at 6 PM every day.</textarea>
+      </details>
+    </section>
+    <section class="panel conversation" aria-labelledby="conversation-heading">
+      <div class="row"><h2 id="conversation-heading">Conversation</h2><span id="session-label" class="badge">Not connected</span></div>
+      <p id="prompt" class="prompt" lang="te">మీ దుకాణం ఎప్పుడు తెరుస్తారు?</p>
+      <p class="hint">SideMate uses your microphone when you select Record message. Your audio and transcript go to AI providers to generate a reply.</p>
+      <p id="status" role="status">Start a session, then record the question above.</p>
+      <p id="error" role="alert"></p>
+      <div class="row controls"><button id="record" type="button" disabled>Record message</button><button id="stop-audio" type="button" class="secondary" disabled>Stop playback</button></div>
+      <audio id="player" controls hidden aria-label="SideMate reply"></audio>
+      <div id="transcript" role="log" aria-live="polite"><p class="empty">Your question and reply will appear here.</p></div>
+      <button id="export" type="button" class="secondary" disabled>Export transcript</button>
+      <details><summary>Session details</summary><p class="hint">Each recording can be up to 24 seconds. Sessions last up to 15 minutes or 12 turns.</p><p id="models" class="hint"></p></details>
+    </section>
+  </div>
+</main>
+</body>
+</html>

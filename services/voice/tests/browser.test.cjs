@@ -1,19 +1,31 @@
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const assert = require('node:assert/strict');
 (async () => {
-  const browser = await chromium.launch({channel:process.env.BROWSER_CHANNEL || 'msedge',headless:true,args:['--use-fake-ui-for-media-stream','--use-fake-device-for-media-stream']});
+  const browser = await chromium.launch({channel:process.env.BROWSER_CHANNEL || 'msedge',headless:true,args:['--use-fake-ui-for-media-stream','--use-fake-device-for-media-stream','--autoplay-policy=no-user-gesture-required']});
   const context = await browser.newContext({permissions:['microphone'],viewport:{width:1280,height:900}});
   const page = await context.newPage();
   const failures=[]; page.on('pageerror',error=>failures.push(error.message));
   await page.goto('http://127.0.0.1:8000/lab');
   await page.getByLabel('Lab access key').fill('test-only-operator-key-32-characters-long');
-  await page.getByLabel('Approved business information').fill('SideMate provides business assistance.');
   await page.getByRole('button',{name:'Start session',exact:true}).click();
-  await page.getByRole('alert').filter({hasText:'Configure VOICE_LAB_ACCESS_KEY'}).waitFor();
+  await page.getByRole('alert').filter({hasText:/Invalid lab access key|Configure VOICE_LAB_ACCESS_KEY/}).waitFor();
   if (process.env.SCREENSHOT_PATH) await page.screenshot({path:process.env.SCREENSHOT_PATH,fullPage:true});
   await page.goto('http://127.0.0.1:8127/lab');
+  assert.equal(await page.locator('#context').inputValue(), 'The sample shop opens at 9 AM and closes at 6 PM every day.');
+  await page.getByRole('button',{name:'Start session',exact:true}).click();
+  await page.getByRole('alert').filter({hasText:'Enter the full lab access key'}).waitFor();
+  await page.getByLabel('Reply language').selectOption('en-IN');
+  await page.getByText('What time does your shop open?',{exact:true}).waitFor();
+  await page.getByLabel('Reply language').selectOption('te-IN');
+  for (const language of ['te', 'en']) {
+    const sample = page.locator(`audio[src="/static/sample-${language}.mp3"]`);
+    assert.ok(await sample.evaluate(async audio => {
+      await audio.play();
+      audio.pause();
+      return audio.duration;
+    }) > 0);
+  }
   await page.getByLabel('Lab access key').fill('test-only-operator-key-32-characters-long');
-  await page.getByLabel('Approved business information').fill('SideMate provides business assistance.');
   await page.getByRole('button',{name:'Start session',exact:true}).click();
   await page.getByText('Session ready',{exact:true}).waitFor();
   assert.equal(await page.getByLabel('Lab access key').inputValue(),'');
@@ -23,7 +35,7 @@ const assert = require('node:assert/strict');
   await page.getByRole('button',{name:'Send recording',exact:true}).click();
   await page.getByText('మీ సేవల గురించి చెప్పండి',{exact:true}).waitFor({timeout:10000}).catch(async error=>{console.error(await page.locator('body').innerText()); await browser.close(); throw error;});
   await page.getByText('మేము వ్యాపార సహాయం అందిస్తాము.',{exact:true}).waitFor();
-  assert.equal(await page.locator('audio').isVisible(),true);
+  assert.equal(await page.locator('#player').isVisible(),true);
   const downloadPromise = page.waitForEvent('download');
   await page.getByRole('button',{name:'Export transcript'}).click();
   const download=await downloadPromise;
@@ -31,7 +43,7 @@ const assert = require('node:assert/strict');
   await page.getByRole('button',{name:'End session',exact:true}).click();
   await page.getByText('Not connected',{exact:true}).waitFor();
   assert.equal(await page.getByRole('button',{name:'Record message',exact:true}).isDisabled(),true);
-  assert.equal(await page.locator('audio').isVisible(),false);
+  assert.equal(await page.locator('#player').isVisible(),false);
   await page.setViewportSize({width:390,height:844});
   await page.goto('http://127.0.0.1:8000/lab');
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth),true);
