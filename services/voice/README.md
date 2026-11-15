@@ -2,6 +2,18 @@
 
 ## Lead-to-call pilot (2026-11-15)
 
+Open `/sales` for lead intake, call status, and the sales review inbox. After
+refreshing sales tasks, read the transcript, choose the lead outcome, record
+requirements/budget/timeline, assign an owner and write the next action. Click
+Save review. These are explicitly human-entered reviews, not AI extraction.
+Saving does not schedule a callback or send any external message.
+
+`POST /v1/voice/sales-tasks/{call_id}/review` requires the operator bearer key,
+current `version` (initially 0), `disposition`, `owner`, and `next_action`.
+Optional strings: `requirement`, `budget`, `timeline`. Qualified outcomes
+require a nonempty requirement. A stale version returns 409; refresh before
+editing again. Reviews persist in SQLite and are returned in the inbox API.
+
 `POST /v1/voice/leads` uses the callback operator bearer key and accepts the
 callback fields (`request_id`, `phone`, `language`, `business_context`) plus
 `name`, `source`, `enquiry`, and the strict boolean `consent_to_call: true`.

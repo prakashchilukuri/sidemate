@@ -15,6 +15,7 @@ import wave
 from contextlib import closing
 from pathlib import Path
 from urllib.parse import urlsplit
+from typing import Literal
 
 import httpx
 from fastapi import HTTPException, Request, WebSocket, WebSocketDisconnect
@@ -27,7 +28,17 @@ FINAL = {"completed", "busy", "no-answer", "failed", "canceled"}
 
 
 def setup_callbacks(app, settings, session_model, read_model, db_path=None):
-    from pydantic import Field
+    from pydantic import BaseModel, Field, ConfigDict
+
+    class ReviewRequest(BaseModel):
+        model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+        version: int = Field(ge=0, strict=True)
+        disposition: Literal["needs_review", "qualified", "not_interested", "callback_requested", "information_requested"]
+        requirement: str = Field(default="", max_length=1000)
+        budget: str = Field(default="", max_length=200)
+        timeline: str = Field(default="", max_length=200)
+        owner: str = Field(min_length=1, max_length=120)
+        next_action: str = Field(min_length=1, max_length=1000)
 
     class CallbackRequest(session_model):
         request_id: str = Field(pattern=r"^[a-zA-Z0-9_-]{8,64}$")
@@ -72,6 +83,10 @@ def setup_callbacks(app, settings, session_model, read_model, db_path=None):
         db.execute("""CREATE TABLE IF NOT EXISTS sales_tasks (
             call_id TEXT PRIMARY KEY, status TEXT NOT NULL, transcript TEXT NOT NULL,
             conversation_status TEXT NOT NULL
+        )""")
+        db.execute("""CREATE TABLE IF NOT EXISTS sales_reviews (
+            call_id TEXT PRIMARY KEY, payload TEXT NOT NULL, version INTEGER NOT NULL,
+            updated_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now'))
         )""")
         return db
 
@@ -131,13 +146,37 @@ def setup_callbacks(app, settings, session_model, read_model, db_path=None):
     async def sales_tasks(request: Request):
         operator(request)
         with closing(connect()) as db:
-            rows = db.execute("""SELECT t.*, l.payload FROM sales_tasks t
-                JOIN pilot_leads l ON l.id=t.call_id ORDER BY l.created_at DESC LIMIT 100""").fetchall()
+            rows = db.execute("""SELECT t.*, l.payload, r.payload AS review, r.version
+                FROM sales_tasks t JOIN pilot_leads l ON l.id=t.call_id
+                LEFT JOIN sales_reviews r ON r.call_id=t.call_id
+                ORDER BY l.created_at DESC LIMIT 100""").fetchall()
         return {"items": [{"call_id": r["call_id"], "status": r["status"],
+                           "review": json.loads(r["review"]) if r["review"] else None,
+                           "version": r["version"] or 0,
                            "conversation_status": r["conversation_status"],
                            "lead": {k: json.loads(r["payload"])[k]
                                     for k in ("name", "phone", "source", "enquiry")},
                            "transcript": json.loads(r["transcript"])} for r in rows]}
+
+    @app.post("/v1/voice/sales-tasks/{call_id}/review")
+    async def review_task(call_id: str, request: Request):
+        operator(request)
+        review = await read_model(request, ReviewRequest, 8000)
+        if review.disposition == "qualified" and not review.requirement:
+            raise HTTPException(422, "Record the customer's requirement before marking qualified.")
+        with closing(connect()) as db, db:
+            db.execute("BEGIN IMMEDIATE")
+            if not db.execute("SELECT 1 FROM sales_tasks WHERE call_id = ?", (call_id,)).fetchone():
+                raise HTTPException(404, "Sales task not found.")
+            previous = db.execute("SELECT version FROM sales_reviews WHERE call_id = ?", (call_id,)).fetchone()
+            version = previous["version"] if previous else 0
+            if version != review.version:
+                raise HTTPException(409, "This review changed. Refresh sales tasks before saving again.")
+            payload = review.model_dump(exclude={"version"})
+            db.execute("""INSERT INTO sales_reviews (call_id, payload, version) VALUES (?, ?, ?)
+                ON CONFLICT(call_id) DO UPDATE SET payload=excluded.payload, version=excluded.version,
+                    updated_at=strftime('%s', 'now')""", (call_id, json.dumps(payload), version + 1))
+        return {"review": payload, "version": version + 1}
 
     async def dispatch(payload):
         if settings.missing():

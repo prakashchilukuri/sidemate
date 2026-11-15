@@ -100,3 +100,20 @@ def test_callback_dials_once_and_persists_voice_outcome(monkeypatch, tmp_path, f
             assert tasks[0]["status"] == "needs_review"
             assert tasks[0]["lead"]["name"] == "Pilot customer"
             assert tasks[0]["transcript"] == result["transcript"]
+            review_url = "/v1/voice/sales-tasks/test-call-1/review"
+            review = {"version": 0, "disposition": "qualified", "requirement": "2BHK",
+                      "budget": "", "timeline": "", "owner": "Pilot salesperson",
+                      "next_action": "Ask about budget"}
+            assert client.post(review_url, json=review).status_code == 401
+            assert client.post(review_url, json={**review, "requirement": " "}, headers=auth).status_code == 422
+            assert client.post(review_url, json={**review, "owner": " "}, headers=auth).status_code == 422
+            assert client.post(review_url.replace("test-call-1", "missing-call"), json=review, headers=auth).status_code == 404
+            saved = client.post(review_url, json=review, headers=auth)
+            assert saved.status_code == 200 and saved.json()["version"] == 1
+            assert client.post(review_url, json=review, headers=auth).status_code == 409
+    if from_lead:
+        with TestClient(create_app(settings, Voice(), db_path, transport)) as client:
+            persisted = client.get("/v1/voice/sales-tasks", headers=auth).json()["items"][0]
+            assert persisted["review"]["requirement"] == "2BHK"
+            assert persisted["review"]["budget"] == ""
+            assert persisted["version"] == 1
